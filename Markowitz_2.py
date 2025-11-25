@@ -70,8 +70,38 @@ class MyPortfolio:
         """
         TODO: Complete Task 4 Below
         """
-        
-        
+        rebalance_window = 30  # use past-30 days
+
+        for i in range(rebalance_window, len(self.price)):
+            current_date = self.price.index[i]
+
+            # Past-30-day price level
+            past_prices = self.price.iloc[i - rebalance_window][assets]
+            current_prices = self.price.iloc[i][assets]
+
+            # 30-day return ratio: (P_t / P_{t-30}) - 1
+            ret_30 = current_prices / past_prices - 1.0
+
+            # Identify assets with positive 30-day return
+            positive_mask = ret_30 > 0
+
+            if positive_mask.any():
+                # Use only positive-return assets, weights proportional to 30d return
+                positive_ret = ret_30[positive_mask]
+                weights = positive_ret / positive_ret.sum()
+
+                weights_full = pd.Series(0.0, index=assets)
+                weights_full[positive_ret.index] = weights
+            else:
+                # All assets have negative 30-day return:
+                # choose the one with least loss (max 30d return)
+                best_asset = ret_30.idxmax()
+                weights_full = pd.Series(0.0, index=assets)
+                weights_full[best_asset] = 1.0
+
+            # Assign weights for this rebalance day
+            self.portfolio_weights.loc[current_date, assets] = weights_full.values
+            self.portfolio_weights.loc[current_date, self.exclude] = 0.0  
         """
         TODO: Complete Task 4 Above
         """
